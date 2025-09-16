@@ -1,0 +1,20 @@
+[servers]
+# Add your servers here
+# Example:
+# server1 ansible_host=192.168.1.10 ansible_user=ubuntu
+# server2 ansible_host=192.168.1.11 ansible_user=ubuntu
+
+[nginx_servers]
+# Servers that will run nginx
+
+[clickhouse_servers]
+# Servers that will run ClickHouse
+
+[prometheus_servers]
+# Servers that will run Prometheus
+
+[grafana_servers]
+# Servers that will run Grafana
+
+[indexer_servers]
+# Servers that will run custom binaries

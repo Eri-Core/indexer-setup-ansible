@@ -1,0 +1,6 @@
+---
+- name: restart clickhouse
+  systemd:
+    name: clickhouse-server
+    state: restarted
+  become: yes

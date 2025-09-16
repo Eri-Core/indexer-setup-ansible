@@ -1,0 +1,42 @@
+---
+- name: Configure all servers with common setup
+  hosts: servers
+  become: yes
+  roles:
+    - common
+
+- name: Configure SSL certificates
+  hosts: nginx_servers
+  become: yes
+  roles:
+    - certs
+
+- name: Configure nginx load balancers
+  hosts: nginx_servers
+  become: yes
+  roles:
+    - nginx
+
+- name: Configure ClickHouse servers
+  hosts: clickhouse_servers
+  become: yes
+  roles:
+    - clickhouse
+
+- name: Configure Prometheus servers
+  hosts: prometheus_servers
+  become: yes
+  roles:
+    - prometheus
+
+- name: Configure Grafana servers
+  hosts: grafana_servers
+  become: yes
+  roles:
+    - grafana
+
+- name: Configure custom binaries
+  hosts: indexer_servers
+  become: yes
+  roles:
+    - binaries

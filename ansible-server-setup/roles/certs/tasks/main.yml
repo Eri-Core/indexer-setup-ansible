@@ -1,0 +1,96 @@
+---
+- name: Install certbot and dependencies
+  apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+  become: yes
+
+- name: Check if certificate already exists
+  stat:
+    path: "/etc/letsencrypt/live/{{ certbot_certs[0].domains[0] }}/cert.pem"
+  register: cert_exists
+  become: yes
+
+- name: Stop nginx for standalone cert generation
+  systemd:
+    name: nginx
+    state: stopped
+  become: yes
+  when: 
+    - certbot_create_method == 'standalone'
+    - not cert_exists.stat.exists
+
+- name: Generate certificate using standalone
+  command: >
+    certbot certonly
+    --standalone
+    --noninteractive
+    --agree-tos
+    --email {{ certbot_admin_email }}
+    {% for domain in certbot_certs[0].domains %}
+    -d {{ domain }}
+    {% endfor %}
+    {{ certbot_create_extra_args }}
+  become: yes
+  when:
+    - certbot_create_method == 'standalone'
+    - not cert_exists.stat.exists
+
+- name: Generate certificate using nginx
+  command: >
+    certbot certonly
+    --nginx
+    --noninteractive
+    --agree-tos
+    --email {{ certbot_admin_email }}
+    {% for domain in certbot_certs[0].domains %}
+    -d {{ domain }}
+    {% endfor %}
+    {{ certbot_create_extra_args }}
+  become: yes
+  when:
+    - certbot_create_method == 'nginx'
+    - not cert_exists.stat.exists
+
+- name: Start nginx after standalone cert generation
+  systemd:
+    name: nginx
+    state: started
+  become: yes
+  when: 
+    - certbot_create_method == 'standalone'
+    - not cert_exists.stat.exists
+
+- name: Create renewal hook directory
+  file:
+    path: /etc/letsencrypt/renewal-hooks/post
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Create nginx reload hook
+  copy:
+    content: |
+      #!/bin/bash
+      systemctl reload nginx
+    dest: /etc/letsencrypt/renewal-hooks/post/nginx-reload
+    mode: '0755'
+  become: yes
+
+- name: Set up automatic renewal cron job
+  cron:
+    name: "Certbot renewal"
+    user: "{{ certbot_auto_renew_user }}"
+    hour: "{{ certbot_auto_renew_hour }}"
+    minute: "{{ certbot_auto_renew_minute }}"
+    job: "certbot renew --quiet"
+  become: yes
+  when: certbot_auto_renew
+
+- name: Test certificate renewal
+  command: certbot renew --dry-run
+  become: yes
+  register: renewal_test
+  changed_when: false

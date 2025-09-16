@@ -1,0 +1,38 @@
+global:
+  scrape_interval: {{ prometheus_scrape_interval }}
+  evaluation_interval: {{ prometheus_scrape_interval }}
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:{{ prometheus_port }}']
+
+  - job_name: 'node'
+    static_configs:
+      - targets:
+{% for host in groups['servers'] %}
+          - '{{ hostvars[host]['ansible_default_ipv4']['address'] }}:9100'
+{% endfor %}
+
+  - job_name: 'nginx'
+    static_configs:
+      - targets:
+{% for host in groups['nginx_servers'] %}
+          - '{{ hostvars[host]['ansible_default_ipv4']['address'] }}:9113'
+{% endfor %}
+
+  - job_name: 'clickhouse'
+    static_configs:
+      - targets:
+{% for host in groups['clickhouse_servers'] %}
+          - '{{ hostvars[host]['ansible_default_ipv4']['address'] }}:9363'
+{% endfor %}
+
+  - job_name: 'custom_binaries'
+    static_configs:
+      - targets:
+{% for binary in custom_binaries %}
+{% for instance in binary.instances %}
+          - '{{ ansible_default_ipv4.address }}:{{ instance.port }}'
+{% endfor %}
+{% endfor %}

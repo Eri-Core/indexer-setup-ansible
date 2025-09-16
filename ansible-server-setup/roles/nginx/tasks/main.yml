@@ -1,0 +1,49 @@
+---
+- name: Install nginx
+  apt:
+    name: nginx
+    state: present
+  become: yes
+
+- name: Remove default nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: yes
+  notify: restart nginx
+
+- name: Create nginx configuration directory
+  file:
+    path: /etc/nginx/conf.d
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Configure nginx as load balancer
+  template:
+    src: load_balancer.conf.j2
+    dest: "/etc/nginx/conf.d/load_balancer.conf"
+    mode: '0644'
+  become: yes
+  notify: restart nginx
+
+- name: Configure firewall for HTTPS
+  ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+  become: yes
+
+- name: Configure firewall for HTTP (for certbot)
+  ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+  become: yes
+
+- name: Start and enable nginx
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes
+  become: yes

@@ -1,0 +1,47 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  become: yes
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist
+    autoremove: yes
+    autoclean: yes
+  become: yes
+
+- name: Install base dependencies
+  apt:
+    name: "{{ base_packages }}"
+    state: present
+  become: yes
+
+- name: Gather network facts
+  setup:
+    gather_subset:
+      - network
+
+- name: Get public IP address
+  uri:
+    url: https://ipinfo.io/ip
+    return_content: yes
+  register: public_ip
+  ignore_errors: yes
+
+- name: Set fact for public IP
+  set_fact:
+    server_public_ip: "{{ public_ip.content | default('N/A') | trim }}"
+
+- name: Set fact for private IP
+  set_fact:
+    server_private_ip: "{{ ansible_default_ipv4.address | default('N/A') }}"
+
+- name: Display server information
+  debug:
+    msg:
+      - "Server Hostname: {{ ansible_hostname }}"
+      - "Public IP: {{ server_public_ip }}"
+      - "Private IP: {{ server_private_ip }}"
+      - "All IPv4 addresses: {{ ansible_all_ipv4_addresses | join(', ') }}"

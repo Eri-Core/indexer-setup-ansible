@@ -1,0 +1,12 @@
+---
+- name: daemon reload
+  systemd:
+    daemon_reload: yes
+  become: yes
+
+- name: restart services
+  systemd:
+    name: "{{ item.1.name }}"
+    state: restarted
+  loop: "{{ custom_binaries | subelements('instances') }}"
+  become: yes

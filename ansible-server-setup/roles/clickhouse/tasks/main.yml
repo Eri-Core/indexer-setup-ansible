@@ -1,0 +1,72 @@
+---
+- name: Add ClickHouse GPG key
+  apt_key:
+    url: https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key
+    keyring: /usr/share/keyrings/clickhouse-keyring.gpg
+    state: present
+  become: yes
+
+- name: Add ClickHouse repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://packages.clickhouse.com/deb stable main"
+    state: present
+    filename: clickhouse
+  become: yes
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+  become: yes
+
+- name: Install ClickHouse packages
+  apt:
+    name:
+      - clickhouse-server
+      - clickhouse-client
+    state: present
+  become: yes
+
+- name: Create ClickHouse directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: clickhouse
+    group: clickhouse
+    mode: '0755'
+  loop:
+    - "{{ clickhouse_data_dir }}"
+    - "{{ clickhouse_log_dir }}"
+    - /etc/clickhouse-server/config.d
+    - /etc/clickhouse-server/users.d
+  become: yes
+
+- name: Configure ClickHouse server
+  template:
+    src: config.xml.j2
+    dest: /etc/clickhouse-server/config.d/custom.xml
+    owner: clickhouse
+    group: clickhouse
+    mode: '0644'
+  become: yes
+  notify: restart clickhouse
+
+- name: Configure firewall for ClickHouse HTTP port
+  ufw:
+    rule: allow
+    port: "{{ clickhouse_http_port }}"
+    proto: tcp
+  become: yes
+
+- name: Configure firewall for ClickHouse TCP port
+  ufw:
+    rule: allow
+    port: "{{ clickhouse_tcp_port }}"
+    proto: tcp
+  become: yes
+
+- name: Start and enable ClickHouse
+  systemd:
+    name: clickhouse-server
+    state: started
+    enabled: yes
+  become: yes

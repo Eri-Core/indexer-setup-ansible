@@ -1,0 +1,89 @@
+---
+- name: Create prometheus user
+  user:
+    name: prometheus
+    system: yes
+    shell: /bin/false
+    home: /var/lib/prometheus
+    createhome: no
+  become: yes
+
+- name: Create prometheus directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: '0755'
+  loop:
+    - /etc/prometheus
+    - /var/lib/prometheus
+  become: yes
+
+- name: Download Prometheus
+  unarchive:
+    src: https://github.com/prometheus/prometheus/releases/download/v2.48.0/prometheus-2.48.0.linux-amd64.tar.gz
+    dest: /tmp
+    remote_src: yes
+    owner: prometheus
+    group: prometheus
+  become: yes
+
+- name: Install Prometheus binaries
+  copy:
+    src: "/tmp/prometheus-2.48.0.linux-amd64/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    remote_src: yes
+    owner: prometheus
+    group: prometheus
+    mode: '0755'
+  loop:
+    - prometheus
+    - promtool
+  become: yes
+
+- name: Copy console libraries
+  copy:
+    src: "/tmp/prometheus-2.48.0.linux-amd64/{{ item }}"
+    dest: "/etc/prometheus/{{ item }}"
+    remote_src: yes
+    owner: prometheus
+    group: prometheus
+  loop:
+    - consoles
+    - console_libraries
+  become: yes
+
+- name: Configure Prometheus
+  template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0644'
+  become: yes
+  notify: restart prometheus
+
+- name: Create Prometheus systemd service
+  template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+  become: yes
+  notify:
+    - daemon reload
+    - restart prometheus
+
+- name: Configure firewall for Prometheus
+  ufw:
+    rule: allow
+    port: "{{ prometheus_port }}"
+    proto: tcp
+  become: yes
+
+- name: Start and enable Prometheus
+  systemd:
+    name: prometheus
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  become: yes

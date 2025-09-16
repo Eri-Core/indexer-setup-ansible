@@ -1,0 +1,27 @@
+[Unit]
+Description={{ item.0.description }} - {{ item.1.name }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ item.0.user }}
+Group={{ item.0.group }}
+WorkingDirectory={{ item.0.working_dir }}
+ExecStart={{ item.0.working_dir }}/{{ item.0.name }} --config {{ item.1.config_file }} --port {{ item.1.port }}
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+{% if item.0.environment_vars is defined %}
+{% for key, value in item.0.environment_vars.items() %}
+Environment="{{ key }}={{ value }}"
+{% endfor %}
+{% endif %}
+
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
