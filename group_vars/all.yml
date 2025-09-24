@@ -1,7 +1,7 @@
 ---
 # General Configuration
-indexer_domain: "example.com"
-admin_email: "admin@example.com"
+indexer_domain: "localhost"
+admin_email: "your-email@domain.com"
 
 # Base Packages to Install
 base_packages:
@@ -35,6 +35,7 @@ grafana_admin_password: "changeme"
 certbot_admin_email: "{{ admin_email }}"
 certbot_create_method: "standalone"
 certbot_create_extra_args: "--test-cert"
+skip_ssl_for_localhost: true
 certbot_certs:
   - domains:
       - "{{ indexer_domain }}"
