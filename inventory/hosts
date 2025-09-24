@@ -1,4 +1,4 @@
-localhost ansible_connection=local ansible_become=false
+localhost ansible_connection=local ansible_become=true ansible_become_method=sudo
 
 [servers]
 localhost
