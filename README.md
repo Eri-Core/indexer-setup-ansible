@@ -35,6 +35,38 @@ grafana_admin_password: "secure-password"
 ansible-playbook site.yml
 ```
 
+## Command Line Parameters
+
+You can pass variables directly when running the playbook instead of editing `group_vars/all.yml`:
+
+### Basic Usage
+```bash
+ansible-playbook site.yml --extra-vars "indexer_domain=mydomain.com admin_email=admin@mydomain.com clickhouse_password=mypass123 grafana_admin_password=grafana123"
+```
+
+### JSON Format
+```bash
+ansible-playbook site.yml --extra-vars '{"indexer_domain":"mydomain.com","admin_email":"admin@mydomain.com","clickhouse_password":"mypass123","grafana_admin_password":"grafana123"}'
+```
+
+### From Variables File
+```bash
+# Create custom-vars.yml with your values
+ansible-playbook site.yml --extra-vars "@custom-vars.yml"
+```
+
+### Using Environment Variables
+```bash
+export INDEXER_DOMAIN="mydomain.com"
+export ADMIN_EMAIL="admin@mydomain.com"
+export CLICKHOUSE_PASSWORD="mypass123"
+export GRAFANA_ADMIN_PASSWORD="grafana123"
+
+ansible-playbook site.yml --extra-vars "indexer_domain=${INDEXER_DOMAIN} admin_email=${ADMIN_EMAIL} clickhouse_password=${CLICKHOUSE_PASSWORD} grafana_admin_password=${GRAFANA_ADMIN_PASSWORD}"
+```
+
+**Note**: Command line variables override values in `group_vars/all.yml`
+
 ## Services
 
 ### Nginx (Port 443)
