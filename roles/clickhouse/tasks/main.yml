@@ -70,3 +70,25 @@
     state: started
     enabled: yes
   become: yes
+
+- name: Wait for ClickHouse to be ready
+  wait_for:
+    port: "{{ clickhouse_http_port }}"
+    host: localhost
+    delay: 5
+    timeout: 60
+  become: yes
+
+- name: Set default user password
+  shell: |
+    echo "ALTER USER default IDENTIFIED BY '{{ clickhouse_password }}';" | clickhouse-client
+  become: yes
+  become_user: clickhouse
+  ignore_errors: yes
+
+- name: Create ericore database
+  shell: |
+    echo "CREATE DATABASE IF NOT EXISTS {{ clickhouse_database_name }};" | clickhouse-client --password '{{ clickhouse_password }}'
+  become: yes
+  become_user: clickhouse
+  ignore_errors: yes

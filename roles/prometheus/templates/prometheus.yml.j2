@@ -27,12 +27,3 @@ scrape_configs:
 {% for host in groups['clickhouse_servers'] %}
           - '{{ hostvars[host]['ansible_default_ipv4']['address'] }}:9363'
 {% endfor %}
-
-  - job_name: 'custom_binaries'
-    static_configs:
-      - targets:
-{% for binary in custom_binaries %}
-{% for instance in binary.instances %}
-          - '{{ ansible_default_ipv4.address }}:{{ instance.port }}'
-{% endfor %}
-{% endfor %}

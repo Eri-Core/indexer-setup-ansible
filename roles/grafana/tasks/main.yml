@@ -55,6 +55,46 @@
   become: yes
   notify: restart grafana
 
+- name: Create dashboard provider config
+  copy:
+    content: |
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 10
+          allowUiUpdates: true
+          options:
+            path: /etc/grafana/provisioning/dashboards
+    dest: /etc/grafana/provisioning/dashboards/dashboard-provider.yml
+    owner: root
+    group: grafana
+    mode: '0640'
+  become: yes
+
+- name: Create ClickHouse dashboard
+  template:
+    src: clickhouse-dashboard.json.j2
+    dest: /etc/grafana/provisioning/dashboards/clickhouse.json
+    owner: root
+    group: grafana
+    mode: '0640'
+  become: yes
+  notify: restart grafana
+
+- name: Create Nginx dashboard
+  template:
+    src: nginx-dashboard.json.j2
+    dest: /etc/grafana/provisioning/dashboards/nginx.json
+    owner: root
+    group: grafana
+    mode: '0640'
+  become: yes
+  notify: restart grafana
+
 - name: Configure firewall for Grafana
   ufw:
     rule: allow

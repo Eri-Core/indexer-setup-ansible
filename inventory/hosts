@@ -15,6 +15,3 @@
 
 [grafana_servers]
 # Servers that will run Grafana
-
-[indexer_servers]
-# Servers that will run custom binaries

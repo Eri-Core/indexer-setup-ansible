@@ -1,0 +1,78 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Nginx Overview",
+    "tags": ["nginx"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(nginx_http_requests_total[5m])",
+            "legendFormat": "Requests/sec"
+          }
+        ]
+      },
+      {
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "id": 2,
+        "title": "Active Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "nginx_connections_active",
+            "legendFormat": "Active"
+          },
+          {
+            "expr": "nginx_connections_reading",
+            "legendFormat": "Reading"
+          },
+          {
+            "expr": "nginx_connections_writing",
+            "legendFormat": "Writing"
+          },
+          {
+            "expr": "nginx_connections_waiting",
+            "legendFormat": "Waiting"
+          }
+        ]
+      },
+      {
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "id": 3,
+        "title": "Connections Accepted/Handled",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(nginx_connections_accepted[5m])",
+            "legendFormat": "Accepted/sec"
+          },
+          {
+            "expr": "rate(nginx_connections_handled[5m])",
+            "legendFormat": "Handled/sec"
+          }
+        ]
+      },
+      {
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8},
+        "id": 4,
+        "title": "Nginx Up",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "nginx_up",
+            "legendFormat": "Status"
+          }
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "time": {"from": "now-6h", "to": "now"},
+    "uid": "nginx-overview",
+    "version": 0
+  }
+}

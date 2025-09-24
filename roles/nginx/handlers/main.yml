@@ -4,9 +4,3 @@
     name: nginx
     state: restarted
   become: yes
-
-- name: reload nginx
-  systemd:
-    name: nginx
-    state: reloaded
-  become: yes

@@ -1,0 +1,66 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "ClickHouse Overview",
+    "tags": ["clickhouse"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "id": 1,
+        "title": "Queries per Second",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ClickHouseProfileEvents_Query[5m])",
+            "legendFormat": "Queries/sec"
+          }
+        ]
+      },
+      {
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "id": 2,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ClickHouseMetrics_MemoryTracking",
+            "legendFormat": "Memory Used"
+          }
+        ]
+      },
+      {
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "id": 3,
+        "title": "Active Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ClickHouseMetrics_TCPConnection",
+            "legendFormat": "TCP Connections"
+          },
+          {
+            "expr": "ClickHouseMetrics_HTTPConnection",
+            "legendFormat": "HTTP Connections"
+          }
+        ]
+      },
+      {
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "id": 4,
+        "title": "Query Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(ClickHouseProfileEvents_QueryTimeMicroseconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          }
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "time": {"from": "now-6h", "to": "now"},
+    "uid": "clickhouse-overview",
+    "version": 0
+  }
+}

@@ -34,9 +34,3 @@
   become: yes
   roles:
     - grafana
-
-- name: Configure custom binaries
-  hosts: indexer_servers
-  become: yes
-  roles:
-    - binaries
