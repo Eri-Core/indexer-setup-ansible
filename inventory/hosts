@@ -1,17 +1,16 @@
+localhost ansible_connection=local
+
 [servers]
-# Add your servers here
-# Example:
-# server1 ansible_host=192.168.1.10 ansible_user=ubuntu
-# server2 ansible_host=192.168.1.11 ansible_user=ubuntu
+localhost
 
 [nginx_servers]
-# Servers that will run nginx
+localhost
 
 [clickhouse_servers]
-# Servers that will run ClickHouse
+localhost
 
 [prometheus_servers]
-# Servers that will run Prometheus
+localhost
 
 [grafana_servers]
-# Servers that will run Grafana
+localhost
