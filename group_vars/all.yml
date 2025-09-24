@@ -34,6 +34,7 @@ grafana_admin_password: "changeme"
 # SSL Certificate Configuration
 certbot_admin_email: "{{ admin_email }}"
 certbot_create_method: "standalone"
+certbot_create_extra_args: "--test-cert"
 certbot_certs:
   - domains:
       - "{{ indexer_domain }}"
