@@ -1,0 +1,16 @@
+localhost ansible_connection=local
+
+[servers]
+localhost
+
+[nginx_servers]
+localhost
+
+[clickhouse_servers]
+localhost
+
+[prometheus_servers]
+localhost
+
+[grafana_servers]
+localhost
