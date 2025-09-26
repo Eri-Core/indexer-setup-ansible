@@ -3,20 +3,61 @@
   apt:
     update_cache: yes
     cache_valid_time: 3600
-  become: yes
+  become: true
 
 - name: Upgrade all packages
   apt:
     upgrade: dist
     autoremove: yes
     autoclean: yes
-  become: yes
+  become: true
 
 - name: Install base dependencies
   apt:
     name: "{{ base_packages }}"
     state: present
-  become: yes
+  become: true
+
+- name: Install ufw firewall
+  apt:
+    name: ufw
+    state: present
+  become: true
+
+- name: Configure UFW defaults
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  become: true
+  loop:
+    - { direction: 'incoming', policy: 'deny' }
+    - { direction: 'outgoing', policy: 'allow' }
+
+- name: Allow SSH access
+  ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+  become: true
+
+- name: Allow HTTP access (port 80) for Let's Encrypt
+  ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+  become: true
+
+- name: Allow HTTPS access (port 443)
+  ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+  become: true
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+  become: true
 
 - name: Gather network facts
   setup:
@@ -28,7 +69,7 @@
     url: https://ipinfo.io/ip
     return_content: yes
   register: public_ip
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: Set fact for public IP
   set_fact:
