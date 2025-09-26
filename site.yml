@@ -1,36 +1,54 @@
 ---
+- name: Display all variables at start
+  hosts: servers
+  gather_facts: false
+  tasks:
+    - name: Log all important variables
+      debug:
+        msg:
+          - "=== DEPLOYMENT CONFIGURATION ==="
+          - "Domain: {{ indexer_domain }}"
+          - "Admin Email: {{ admin_email }}"
+          - "ClickHouse Password: {{ clickhouse_password }}"
+          - "Grafana Admin Password: {{ grafana_admin_password }}"
+          - "Certbot Method: {{ certbot_create_method }}"
+          - "Certbot Extra Args: {{ certbot_create_extra_args }}"
+          - "Skip SSL for localhost: {{ skip_ssl_for_localhost }}"
+          - "Nginx Port: {{ nginx_port }}"
+          - "================================="
+
 - name: Configure all servers with common setup
   hosts: servers
-  become: yes
+  become: true
   roles:
     - common
 
 - name: Configure SSL certificates
   hosts: nginx_servers
-  become: yes
+  become: true
   roles:
     - certs
 
 - name: Configure nginx load balancers
   hosts: nginx_servers
-  become: yes
+  become: true
   roles:
     - nginx
 
 - name: Configure ClickHouse servers
   hosts: clickhouse_servers
-  become: yes
+  become: true
   roles:
     - clickhouse
 
 - name: Configure Prometheus servers
   hosts: prometheus_servers
-  become: yes
+  become: true
   roles:
     - prometheus
 
 - name: Configure Grafana servers
   hosts: grafana_servers
-  become: yes
+  become: true
   roles:
     - grafana
