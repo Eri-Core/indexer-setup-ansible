@@ -1,4 +1,55 @@
 ---
+- name: Clean up existing configurations
+  hosts: servers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stop nginx if running
+      systemd:
+        name: nginx
+        state: stopped
+      ignore_errors: true
+
+    - name: Remove nginx package
+      apt:
+        name: nginx
+        state: absent
+        purge: true
+      ignore_errors: true
+
+    - name: Remove nginx configuration directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/nginx
+        - /var/log/nginx
+        - /var/www/html
+      ignore_errors: true
+
+    - name: Remove existing SSL certificates
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/letsencrypt
+        - /etc/ssl/certs/localhost.crt
+        - /etc/ssl/private/localhost.key
+      ignore_errors: true
+
+    - name: Remove nginx systemd files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/nginx.service
+        - /lib/systemd/system/nginx.service
+      ignore_errors: true
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: true
+
 - name: Display all variables at start
   hosts: servers
   gather_facts: false
