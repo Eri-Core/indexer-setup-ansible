@@ -61,6 +61,59 @@
         state: present
         force: true
         install_recommends: true
+        allow_downgrade: true
+        allow_change_held_packages: true
+
+    - name: Stop nginx service after installation
+      systemd:
+        name: nginx
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Create nginx configuration directory
+      file:
+        path: /etc/nginx
+        state: directory
+        mode: '0755'
+
+    - name: Create basic nginx.conf
+      copy:
+        content: |
+          user www-data;
+          worker_processes auto;
+          pid /run/nginx.pid;
+          include /etc/nginx/modules-enabled/*.conf;
+
+          events {
+              worker_connections 768;
+          }
+
+          http {
+              sendfile on;
+              tcp_nopush on;
+              types_hash_max_size 2048;
+              include /etc/nginx/mime.types;
+              default_type application/octet-stream;
+              access_log /var/log/nginx/access.log;
+              error_log /var/log/nginx/error.log;
+              gzip on;
+              include /etc/nginx/conf.d/*.conf;
+              include /etc/nginx/sites-enabled/*;
+          }
+        dest: /etc/nginx/nginx.conf
+        mode: '0644'
+
+    - name: Create nginx directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/nginx/conf.d
+        - /etc/nginx/sites-available
+        - /etc/nginx/sites-enabled
+        - /var/log/nginx
 
 - name: Display all variables at start
   hosts: servers
