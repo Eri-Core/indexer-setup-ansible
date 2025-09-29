@@ -1,4 +1,54 @@
 ---
+- name: Install nginx first (if not already installed)
+  apt:
+    name: nginx
+    state: present
+  become: true
+  ignore_errors: true
+
+- name: Ensure nginx configuration directory exists
+  file:
+    path: /etc/nginx
+    state: directory
+    mode: '0755'
+  become: true
+
+- name: Create basic nginx.conf if missing
+  copy:
+    content: |
+      user www-data;
+      worker_processes auto;
+      pid /run/nginx.pid;
+      error_log /var/log/nginx/error.log;
+      include /etc/nginx/modules-enabled/*.conf;
+
+      events {
+          worker_connections 768;
+      }
+
+      http {
+          sendfile on;
+          tcp_nopush on;
+          types_hash_max_size 2048;
+
+          include /etc/nginx/mime.types;
+          default_type application/octet-stream;
+
+          ssl_protocols TLSv1.2 TLSv1.3;
+          ssl_prefer_server_ciphers off;
+
+          access_log /var/log/nginx/access.log;
+
+          gzip on;
+
+          include /etc/nginx/conf.d/*.conf;
+          include /etc/nginx/sites-enabled/*;
+      }
+    dest: /etc/nginx/nginx.conf
+    mode: '0644'
+    force: no
+  become: true
+
 - name: Install certbot and dependencies
   apt:
     name:
@@ -6,6 +56,7 @@
       - python3-certbot-nginx
       - openssl
     state: present
+    update_cache: yes
   become: true
 
 - name: Check if certificate already exists (Let's Encrypt)
