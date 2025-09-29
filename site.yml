@@ -50,6 +50,18 @@
       systemd:
         daemon_reload: true
 
+    - name: Update package cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Force reinstall nginx
+      apt:
+        name: nginx
+        state: present
+        force: true
+        install_recommends: true
+
 - name: Display all variables at start
   hosts: servers
   gather_facts: false
