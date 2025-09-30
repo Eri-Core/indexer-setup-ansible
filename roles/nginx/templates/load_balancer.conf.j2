@@ -1,7 +1,7 @@
-# HTTP to HTTPS redirect for all subdomains
+# HTTP to HTTPS redirect
 server {
     listen 80;
-    server_name {{ indexer_domain }} *.{{ indexer_domain }};
+    server_name {{ indexer_domain }};
     
     location /.well-known/acme-challenge/ {
         root /var/www/html;
@@ -12,7 +12,7 @@ server {
     }
 }
 
-# Main domain - landing page
+# Main HTTPS server with path-based routing
 server {
     listen 443 ssl http2;
     server_name {{ indexer_domain }};
@@ -31,6 +31,7 @@ server {
     add_header X-Frame-Options DENY;
     add_header X-XSS-Protection "1; mode=block";
     
+    # Main landing page
     root /var/www/html;
     index index.html index.htm;
     
@@ -38,33 +39,9 @@ server {
         try_files $uri $uri/ =404;
     }
     
-    location /nginx_status {
-        stub_status on;
-        access_log off;
-        allow 127.0.0.1;
-        allow {{ ansible_default_ipv4.address | default('127.0.0.1') }};
-        deny all;
-    }
-}
-
-# Grafana subdomain
-server {
-    listen 443 ssl http2;
-    server_name grafana.{{ indexer_domain }};
-
-    ssl_certificate /etc/letsencrypt/live/{{ indexer_domain }}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/{{ indexer_domain }}/privkey.pem;
-    
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    
-    location / {
-        proxy_pass http://127.0.0.1:{{ grafana_port }};
+    # Grafana path-based routing
+    location /grafana/ {
+        proxy_pass http://127.0.0.1:{{ grafana_port }}/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -80,27 +57,14 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
+        
+        # Rewrite paths for Grafana
+        rewrite ^/grafana/(.*) /$1 break;
     }
-}
-
-# Prometheus subdomain
-server {
-    listen 443 ssl http2;
-    server_name prometheus.{{ indexer_domain }};
-
-    ssl_certificate /etc/letsencrypt/live/{{ indexer_domain }}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/{{ indexer_domain }}/privkey.pem;
     
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    
-    location / {
-        proxy_pass http://127.0.0.1:{{ prometheus_port }};
+    # Prometheus path-based routing
+    location /prometheus/ {
+        proxy_pass http://127.0.0.1:{{ prometheus_port }}/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -109,27 +73,14 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
+        
+        # Rewrite paths for Prometheus
+        rewrite ^/prometheus/(.*) /$1 break;
     }
-}
-
-# ClickHouse subdomain
-server {
-    listen 443 ssl http2;
-    server_name clickhouse.{{ indexer_domain }};
-
-    ssl_certificate /etc/letsencrypt/live/{{ indexer_domain }}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/{{ indexer_domain }}/privkey.pem;
     
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    
-    location / {
-        proxy_pass http://127.0.0.1:{{ clickhouse_http_port }};
+    # ClickHouse path-based routing
+    location /clickhouse/ {
+        proxy_pass http://127.0.0.1:{{ clickhouse_http_port }}/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -138,43 +89,40 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
+        
+        # Rewrite paths for ClickHouse
+        rewrite ^/clickhouse/(.*) /$1 break;
     }
-}
-
+    
 {% if nginx_upstream_servers is defined %}
-# Custom application subdomain (if upstream servers are configured)
+    # Custom application path-based routing
+    location /app/ {
+        proxy_pass http://backend/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+# Upstream configuration
 upstream backend {
     least_conn;
 {% for server in nginx_upstream_servers %}
     server {{ server }};
 {% endfor %}
 }
-
-server {
-    listen 443 ssl http2;
-    server_name app.{{ indexer_domain }};
-
-    ssl_certificate /etc/letsencrypt/live/{{ indexer_domain }}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/{{ indexer_domain }}/privkey.pem;
+{% endif %}
     
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    
-    location / {
-        proxy_pass http://backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
+    # Nginx status endpoint
+    location /nginx_status {
+        stub_status on;
+        access_log off;
+        allow 127.0.0.1;
+        allow {{ ansible_default_ipv4.address | default('127.0.0.1') }};
+        deny all;
     }
 }
-{% endif %}

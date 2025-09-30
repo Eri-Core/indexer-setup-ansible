@@ -1,9 +1,9 @@
 [server]
 protocol = http
 http_port = {{ grafana_port }}
-domain = grafana.{{ indexer_domain }}
-root_url = https://grafana.{{ indexer_domain }}/
-serve_from_sub_path = false
+domain = {{ indexer_domain }}
+root_url = https://{{ indexer_domain }}/grafana/
+serve_from_sub_path = true
 
 [database]
 type = sqlite3
