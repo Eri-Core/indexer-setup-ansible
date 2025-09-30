@@ -40,15 +40,17 @@
     - /etc/clickhouse-server/users.d
   become: yes
 
-- name: Configure ClickHouse server
-  template:
-    src: config.xml.j2
-    dest: /etc/clickhouse-server/config.d/custom.xml
-    owner: clickhouse
-    group: clickhouse
-    mode: '0644'
-  become: yes
-  notify: restart clickhouse
+- name: Configure ClickHouse server (DISABLED - using defaults)
+  debug:
+    msg: "Using default ClickHouse configuration to avoid startup issues"
+  # template:
+  #   src: config.xml.j2
+  #   dest: /etc/clickhouse-server/config.d/custom.xml
+  #   owner: clickhouse
+  #   group: clickhouse
+  #   mode: '0644'
+  # become: yes
+  # notify: restart clickhouse
 
 - name: Configure firewall for ClickHouse HTTP port
   ufw:
@@ -106,18 +108,48 @@
   become: yes
   ignore_errors: yes
 
-- name: Remove any problematic user configuration files
+- name: Remove any problematic configuration files
   shell: |
     rm -f /etc/clickhouse-server/users.d/ericore.xml
+    rm -f /etc/clickhouse-server/config.d/custom.xml
+    rm -f /etc/clickhouse-server/config.d/*.xml
   become: yes
   ignore_errors: yes
 
-- name: Restart ClickHouse to clear any config issues
+- name: Stop ClickHouse completely before restart
   systemd:
     name: clickhouse-server
-    state: restarted
+    state: stopped
   become: yes
   ignore_errors: yes
+
+- name: Kill any remaining ClickHouse processes
+  shell: |
+    pkill -f clickhouse-server || true
+    sleep 2
+  become: yes
+  ignore_errors: yes
+
+- name: List remaining config files (debug)
+  shell: |
+    echo "=== Main config ==="
+    ls -la /etc/clickhouse-server/config.xml || echo "Main config not found"
+    echo "=== Config.d directory ==="
+    ls -la /etc/clickhouse-server/config.d/ || echo "Config.d directory not found"
+    echo "=== Users.d directory ==="
+    ls -la /etc/clickhouse-server/users.d/ || echo "Users.d directory not found"
+  become: yes
+  register: config_files_debug
+
+- name: Display config files debug info
+  debug:
+    var: config_files_debug.stdout_lines
+
+- name: Start ClickHouse with clean configuration
+  systemd:
+    name: clickhouse-server
+    state: started
+  become: yes
 
 - name: Wait a bit for ClickHouse to fully start
   pause:
