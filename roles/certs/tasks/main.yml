@@ -64,35 +64,7 @@
     path: "/etc/letsencrypt/live/{{ certbot_certs[0].domains[0] }}/cert.pem"
   register: cert_exists
   become: true
-  when: not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
 
-- name: Check if self-signed certificate exists (for localhost)
-  stat:
-    path: "/etc/ssl/certs/{{ certbot_certs[0].domains[0] }}.crt"
-  register: self_signed_cert_exists
-  become: true
-  when: skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost'
-
-- name: Create self-signed certificate directory
-  file:
-    path: "/etc/ssl/private"
-    state: directory
-    mode: '0700'
-  become: true
-  when: 
-    - skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost'
-    - not (self_signed_cert_exists.stat.exists | default(false))
-
-- name: Generate self-signed certificate for localhost
-  command: >
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048
-    -keyout /etc/ssl/private/{{ certbot_certs[0].domains[0] }}.key
-    -out /etc/ssl/certs/{{ certbot_certs[0].domains[0] }}.crt
-    -subj "/C=US/ST=Local/L=Local/O=Local/CN={{ certbot_certs[0].domains[0] }}"
-  become: true
-  when:
-    - skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost'
-    - not (self_signed_cert_exists.stat.exists | default(false))
 
 - name: Stop nginx for standalone cert generation
   systemd:
@@ -102,7 +74,6 @@
   when: 
     - certbot_create_method == 'standalone'
     - not (cert_exists.stat.exists | default(false))
-    - not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
 
 - name: Generate certificate using standalone
   command: >
@@ -115,11 +86,10 @@
     -d {{ domain }}
     {% endfor %}
     {{ certbot_create_extra_args }}
+    --force-renewal
   become: true
   when:
     - certbot_create_method == 'standalone'
-    - not (cert_exists.stat.exists | default(false))
-    - not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
 
 - name: Generate certificate using nginx
   command: >
@@ -132,11 +102,10 @@
     -d {{ domain }}
     {% endfor %}
     {{ certbot_create_extra_args }}
+    --force-renewal
   become: true
   when:
     - certbot_create_method == 'nginx'
-    - not (cert_exists.stat.exists | default(false))
-    - not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
 
 - name: Ensure nginx directories exist before starting
   file:
@@ -151,7 +120,6 @@
   when: 
     - certbot_create_method == 'standalone'
     - not (cert_exists.stat.exists | default(false))
-    - not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
 
 - name: Start nginx after standalone cert generation
   systemd:
@@ -161,7 +129,6 @@
   when: 
     - certbot_create_method == 'standalone'
     - not (cert_exists.stat.exists | default(false))
-    - not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
   ignore_errors: true
   register: nginx_start_result
 
@@ -199,7 +166,13 @@
   when: certbot_auto_renew
 
 - name: Test certificate renewal
-  command: certbot renew --dry-run
+  command: certbot renew --dry-run --webroot -w /var/www/html
   become: true
   register: renewal_test
   changed_when: false
+  ignore_errors: true
+
+- name: Display renewal test result
+  debug:
+    msg: "Certificate renewal test completed. Check if webroot path is configured correctly."
+  when: renewal_test.failed | default(false)

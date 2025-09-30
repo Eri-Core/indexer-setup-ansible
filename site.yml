@@ -1,5 +1,5 @@
 ---
-- name: Clean up and reinstall nginx with fresh configuration
+- name: Clean up ericore-specific configurations
   hosts: servers
   become: true
   gather_facts: false
@@ -10,53 +10,29 @@
         state: stopped
       ignore_errors: true
 
-    - name: Remove nginx package completely
-      apt:
-        name: nginx
-        state: absent
-        purge: true
-        autoremove: true
+    - name: Remove ericore-specific nginx configurations
+      shell: |
+        rm -f /etc/nginx/sites-enabled/ericore-*
+        rm -f /etc/nginx/sites-available/ericore-*
+        rm -f /etc/nginx/conf.d/ericore-*
       ignore_errors: true
 
-    - name: Remove all nginx configuration and data
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/nginx
-        - /var/log/nginx
-        - /var/cache/nginx
-        - /usr/share/nginx
-        - /var/lib/nginx
+    - name: Remove existing SSL certificates for the domain
+      shell: |
+        rm -rf /etc/letsencrypt/live/{{ indexer_domain }}
+        rm -rf /etc/letsencrypt/archive/{{ indexer_domain }}
+        rm -f /etc/letsencrypt/renewal/{{ indexer_domain }}.conf
       ignore_errors: true
+      when: indexer_domain is defined
 
-    - name: Update package cache
-      apt:
-        update_cache: true
-        cache_valid_time: 3600
-
-    - name: Install nginx fresh
+    - name: Ensure nginx is installed
       apt:
         name: 
           - nginx
           - nginx-common
         state: present
-        install_recommends: true
-
-    - name: Ensure nginx is stopped after fresh install
-      systemd:
-        name: nginx
-        state: stopped
-        enabled: false
-      ignore_errors: true
-
-    - name: Backup original nginx configuration
-      copy:
-        src: /etc/nginx/nginx.conf
-        dest: /etc/nginx/nginx.conf.original
-        mode: '0644'
-        remote_src: true
-      ignore_errors: true
+        update_cache: true
+        cache_valid_time: 3600
 
 - name: Display all variables at start
   hosts: servers
@@ -72,7 +48,6 @@
           - "Grafana Admin Password: {{ grafana_admin_password }}"
           - "Certbot Method: {{ certbot_create_method }}"
           - "Certbot Extra Args: {{ certbot_create_extra_args }}"
-          - "Skip SSL for localhost: {{ skip_ssl_for_localhost }}"
           - "Nginx Port: {{ nginx_port }}"
           - "================================="
 
@@ -81,6 +56,12 @@
   become: true
   roles:
     - common
+
+- name: Generate local SSL certificates for internal communication
+  hosts: servers
+  become: true
+  roles:
+    - local-certs
 
 - name: Configure SSL certificates
   hosts: nginx_servers

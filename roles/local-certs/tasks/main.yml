@@ -1,0 +1,142 @@
+---
+- name: Create SSL directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop:
+    - /etc/ssl/ericore
+    - /etc/ssl/ericore/certs
+    - /etc/ssl/ericore/private
+  become: true
+
+- name: Check if CA key exists
+  stat:
+    path: /etc/ssl/ericore/private/ca.key
+  register: ca_key_exists
+  become: true
+
+- name: Generate CA private key
+  command: >
+    openssl genrsa -out /etc/ssl/ericore/private/ca.key 4096
+  become: true
+  when: not ca_key_exists.stat.exists
+
+- name: Generate CA certificate
+  command: >
+    openssl req -new -x509 -days 3650 -key /etc/ssl/ericore/private/ca.key
+    -out /etc/ssl/ericore/certs/ca.crt
+    -subj "/C=US/ST=State/L=City/O=Ericore/OU=IT/CN=Ericore CA"
+  become: true
+  when: not ca_key_exists.stat.exists
+
+- name: Check if server key exists
+  stat:
+    path: /etc/ssl/ericore/private/{{ inventory_hostname }}.key
+  register: server_key_exists
+  become: true
+
+- name: Generate server private key
+  command: >
+    openssl genrsa -out /etc/ssl/ericore/private/{{ inventory_hostname }}.key 2048
+  become: true
+  when: not server_key_exists.stat.exists
+
+- name: Generate server certificate request
+  command: >
+    openssl req -new -key /etc/ssl/ericore/private/{{ inventory_hostname }}.key
+    -out /etc/ssl/ericore/{{ inventory_hostname }}.csr
+    -subj "/C=US/ST=State/L=City/O=Ericore/OU=IT/CN={{ inventory_hostname }}"
+  become: true
+  when: not server_key_exists.stat.exists
+
+- name: Create certificate extensions file
+  copy:
+    content: |
+      basicConstraints=CA:FALSE
+      keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+      subjectAltName = @alt_names
+      
+      [alt_names]
+      DNS.1 = {{ inventory_hostname }}
+      DNS.2 = localhost
+      DNS.3 = {{ ansible_default_ipv4.address | default('127.0.0.1') }}
+      IP.1 = 127.0.0.1
+      IP.2 = {{ ansible_default_ipv4.address | default('127.0.0.1') }}
+    dest: /etc/ssl/ericore/{{ inventory_hostname }}.ext
+    mode: '0644'
+  become: true
+  when: not server_key_exists.stat.exists
+
+- name: Sign server certificate with CA
+  command: >
+    openssl x509 -req -in /etc/ssl/ericore/{{ inventory_hostname }}.csr
+    -CA /etc/ssl/ericore/certs/ca.crt
+    -CAkey /etc/ssl/ericore/private/ca.key
+    -CAcreateserial
+    -out /etc/ssl/ericore/certs/{{ inventory_hostname }}.crt
+    -days 365
+    -extfile /etc/ssl/ericore/{{ inventory_hostname }}.ext
+  become: true
+  when: not server_key_exists.stat.exists
+
+- name: Create combined certificate chain
+  shell: |
+    cat /etc/ssl/ericore/certs/{{ inventory_hostname }}.crt \
+        /etc/ssl/ericore/certs/ca.crt \
+        > /etc/ssl/ericore/certs/{{ inventory_hostname }}-chain.crt
+  become: true
+  when: not server_key_exists.stat.exists
+
+- name: Set proper permissions on private keys
+  file:
+    path: "{{ item }}"
+    mode: '0600'
+    owner: root
+    group: root
+  loop:
+    - /etc/ssl/ericore/private/ca.key
+    - /etc/ssl/ericore/private/{{ inventory_hostname }}.key
+  become: true
+
+- name: Set proper permissions on certificates
+  file:
+    path: "{{ item }}"
+    mode: '0644'
+    owner: root
+    group: root
+  loop:
+    - /etc/ssl/ericore/certs/ca.crt
+    - /etc/ssl/ericore/certs/{{ inventory_hostname }}.crt
+    - /etc/ssl/ericore/certs/{{ inventory_hostname }}-chain.crt
+  become: true
+
+- name: Copy CA certificate to trusted store
+  copy:
+    src: /etc/ssl/ericore/certs/ca.crt
+    dest: /usr/local/share/ca-certificates/ericore-ca.crt
+    mode: '0644'
+    remote_src: true
+  become: true
+  notify: update ca certificates
+
+- name: Create certificate info file
+  copy:
+    content: |
+      # Ericore SSL Certificate Information
+      # Generated on: {{ ansible_date_time.iso8601 }}
+      
+      CA Certificate: /etc/ssl/ericore/certs/ca.crt
+      Server Certificate: /etc/ssl/ericore/certs/{{ inventory_hostname }}.crt
+      Server Key: /etc/ssl/ericore/private/{{ inventory_hostname }}.key
+      Certificate Chain: /etc/ssl/ericore/certs/{{ inventory_hostname }}-chain.crt
+      
+      # For nginx SSL configuration:
+      ssl_certificate /etc/ssl/ericore/certs/{{ inventory_hostname }}-chain.crt;
+      ssl_certificate_key /etc/ssl/ericore/private/{{ inventory_hostname }}.key;
+      ssl_trusted_certificate /etc/ssl/ericore/certs/ca.crt;
+    dest: /etc/ssl/ericore/README.txt
+    mode: '0644'
+  become: true

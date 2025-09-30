@@ -26,10 +26,10 @@
     mode: '0755'
   become: true
 
-- name: Configure nginx as load balancer
+- name: Configure nginx as load balancer with ericore prefix
   template:
     src: load_balancer.conf.j2
-    dest: "/etc/nginx/conf.d/load_balancer.conf"
+    dest: "/etc/nginx/conf.d/ericore-load-balancer.conf"
     mode: '0644'
   become: true
   notify: restart nginx
@@ -46,6 +46,15 @@
     rule: allow
     port: '80'
     proto: tcp
+  become: true
+
+- name: Configure firewall for internal HTTPS
+  ufw:
+    rule: allow
+    port: '8443'
+    proto: tcp
+    src: '10.0.0.0/8'
+    comment: 'Internal SSL for backend communication'
   become: true
 
 - name: Test nginx configuration

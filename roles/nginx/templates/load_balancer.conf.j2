@@ -5,6 +5,14 @@ upstream backend {
 {% endfor %}
 }
 
+# Internal HTTPS upstream (if using SSL between nginx and backends)
+upstream backend_ssl {
+    least_conn;
+{% for server in nginx_upstream_servers %}
+    server {{ server }} max_fails=3 fail_timeout=30s;
+{% endfor %}
+}
+
 server {
     listen 80;
     server_name {{ indexer_domain }} www.{{ indexer_domain }};
@@ -54,5 +62,40 @@ server {
         access_log off;
         allow 127.0.0.1;
         deny all;
+    }
+}
+
+# Internal SSL server for secure backend communication
+server {
+    listen 8443 ssl http2;
+    server_name {{ inventory_hostname }} localhost;
+    
+    # Use local self-signed certificates for internal communication
+    ssl_certificate /etc/ssl/ericore/certs/{{ inventory_hostname }}-chain.crt;
+    ssl_certificate_key /etc/ssl/ericore/private/{{ inventory_hostname }}.key;
+    ssl_trusted_certificate /etc/ssl/ericore/certs/ca.crt;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # SSL verification for client certificates (mutual TLS)
+    ssl_verify_client optional;
+    ssl_client_certificate /etc/ssl/ericore/certs/ca.crt;
+    
+    location / {
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header SSL-Client-Verify $ssl_client_verify;
+        proxy_set_header SSL-Client-DN $ssl_client_s_dn;
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 }

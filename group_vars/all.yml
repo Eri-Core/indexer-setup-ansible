@@ -1,6 +1,6 @@
 ---
 # General Configuration
-indexer_domain: "localhost"
+indexer_domain: "ericore.example.com"  # Change this to your actual subdomain
 admin_email: "your-email@domain.com"
 
 # Base Packages to Install
@@ -37,8 +37,8 @@ grafana_admin_password: "changeme"
 # SSL Certificate Configuration
 certbot_admin_email: "{{ admin_email }}"
 certbot_create_method: "standalone"
-certbot_create_extra_args: "--test-cert"
-skip_ssl_for_localhost: true
+certbot_create_extra_args: "--test-cert"  # Remove this for production certificates
 certbot_certs:
   - domains:
       - "{{ indexer_domain }}"
+      - "www.{{ indexer_domain }}"
