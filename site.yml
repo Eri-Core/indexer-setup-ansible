@@ -24,14 +24,17 @@
         rm -f /etc/letsencrypt/renewal/*.conf
       ignore_errors: true
 
-    - name: Stop ClickHouse and remove ALL custom configurations
+    - name: Completely remove and reinstall ClickHouse
       shell: |
         systemctl stop clickhouse-server || true
+        systemctl disable clickhouse-server || true
         pkill -f clickhouse-server || true
         sleep 3
-        rm -f /etc/clickhouse-server/config.d/*.xml
-        rm -f /etc/clickhouse-server/users.d/*.xml
-        echo "ClickHouse stopped and configs cleaned"
+        apt-get remove --purge -y clickhouse-server clickhouse-client || true
+        rm -rf /etc/clickhouse-server
+        rm -rf /var/lib/clickhouse
+        rm -rf /var/log/clickhouse-server
+        echo "ClickHouse completely removed"
       ignore_errors: true
 
 

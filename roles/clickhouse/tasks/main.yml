@@ -18,13 +18,21 @@
     update_cache: yes
   become: yes
 
-- name: Install ClickHouse packages
+- name: Install ClickHouse packages (fresh installation)
   apt:
     name:
       - clickhouse-server
       - clickhouse-client
     state: present
+    install_recommends: yes
   become: yes
+
+- name: Ensure ClickHouse service is initially stopped for clean setup
+  systemd:
+    name: clickhouse-server
+    state: stopped
+  become: yes
+  ignore_errors: yes
 
 - name: Create ClickHouse directories
   file:
@@ -72,6 +80,28 @@
     state: started
     enabled: yes
   become: yes
+  register: clickhouse_start_result
+  ignore_errors: yes
+
+- name: Check ClickHouse logs if startup failed
+  shell: |
+    echo "=== Recent ClickHouse logs ==="
+    journalctl -u clickhouse-server --no-pager -n 30
+    echo "=== ClickHouse error log ==="
+    tail -20 /var/log/clickhouse-server/clickhouse-server.err.log 2>/dev/null || echo "No error log found"
+  register: clickhouse_startup_logs
+  become: yes
+  when: clickhouse_start_result.failed | default(false)
+
+- name: Display ClickHouse startup logs
+  debug:
+    var: clickhouse_startup_logs.stdout_lines
+  when: clickhouse_start_result.failed | default(false)
+
+- name: Fail if ClickHouse couldn't start
+  fail:
+    msg: "ClickHouse failed to start. Check the logs above for details."
+  when: clickhouse_start_result.failed | default(false)
 
 - name: Check ClickHouse service status
   systemd:
