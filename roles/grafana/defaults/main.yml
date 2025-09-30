@@ -1,0 +1,76 @@
+---
+# Grafana default configuration
+grafana_version: "10.0.3"
+grafana_port: 3000
+grafana_user: grafana
+grafana_group: grafana
+grafana_data_dir: /var/lib/grafana
+grafana_log_dir: /var/log/grafana
+grafana_config_dir: /etc/grafana
+
+# Admin settings
+grafana_admin_user: admin
+grafana_admin_password: "{{ grafana_admin_password | default('changeme') }}"
+
+# Database settings
+grafana_database_type: sqlite3
+grafana_database_path: "{{ grafana_data_dir }}/grafana.db"
+
+# Security settings
+grafana_security_secret_key: "{{ lookup('password', '/tmp/grafana_secret_key length=32 chars=ascii_letters,digits') }}"
+grafana_disable_gravatar: true
+grafana_allow_sign_up: false
+grafana_cookie_secure: true
+grafana_cookie_samesite: strict
+
+# SMTP settings
+grafana_smtp_enabled: false
+grafana_smtp_host: "localhost:25"
+grafana_smtp_user: ""
+grafana_smtp_password: ""
+grafana_smtp_from_address: "grafana@{{ indexer_domain }}"
+grafana_smtp_from_name: "Grafana"
+
+# Analytics and telemetry
+grafana_analytics_reporting_enabled: false
+grafana_analytics_check_for_updates: false
+
+# Default datasources
+grafana_datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: "http://localhost:{{ prometheus_port }}"
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+  
+  - name: ClickHouse
+    type: vertamedia-clickhouse-datasource
+    access: proxy
+    url: "http://localhost:{{ clickhouse_http_port }}"
+    isDefault: false
+    editable: true
+    jsonData:
+      defaultDatabase: "{{ clickhouse_database_name }}"
+    secureJsonData:
+      password: "{{ clickhouse_password }}"
+
+# Dashboard provisioning
+grafana_dashboards_dir: "{{ grafana_config_dir }}/provisioning/dashboards"
+grafana_dashboard_providers:
+  - name: 'default'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: "{{ grafana_dashboards_dir }}"
+
+# Plugins to install
+grafana_plugins:
+  - vertamedia-clickhouse-datasource
+  - grafana-piechart-panel
+  - grafana-clock-panel

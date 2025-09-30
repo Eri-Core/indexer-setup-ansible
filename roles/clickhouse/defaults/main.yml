@@ -1,0 +1,88 @@
+---
+# ClickHouse default configuration
+clickhouse_version: "23.8"
+clickhouse_http_port: 8123
+clickhouse_tcp_port: 9000
+clickhouse_interserver_http_port: 9009
+clickhouse_user: clickhouse
+clickhouse_group: clickhouse
+
+# Directory settings
+clickhouse_data_dir: /var/lib/clickhouse
+clickhouse_log_dir: /var/log/clickhouse-server
+clickhouse_config_dir: /etc/clickhouse-server
+clickhouse_tmp_dir: /var/lib/clickhouse/tmp
+
+# Database settings
+clickhouse_database_name: ericore
+clickhouse_default_profile: default
+clickhouse_default_quota: default
+
+# Authentication
+clickhouse_password: "{{ clickhouse_password | default('changeme') }}"
+clickhouse_users:
+  - name: default
+    password: "{{ clickhouse_password }}"
+    networks:
+      - "::/0"
+    profile: default
+    quota: default
+    databases:
+      - "{{ clickhouse_database_name }}"
+
+# Memory and performance settings
+clickhouse_max_memory_usage: 10000000000  # 10GB
+clickhouse_max_memory_usage_for_all_queries: 20000000000  # 20GB
+clickhouse_max_concurrent_queries: 100
+clickhouse_max_connections: 4096
+clickhouse_max_threads: 16
+
+# Query settings
+clickhouse_max_query_size: 1048576
+clickhouse_max_ast_depth: 1000
+clickhouse_max_ast_elements: 50000
+clickhouse_max_expanded_ast_elements: 500000
+
+# Log settings
+clickhouse_log_level: information
+clickhouse_query_log_retention: 30
+clickhouse_query_thread_log_retention: 30
+clickhouse_part_log_retention: 30
+clickhouse_metric_log_retention: 7
+
+# Compression settings
+clickhouse_compression_method: lz4
+clickhouse_compression_level: 1
+
+# Replication settings (for future cluster setup)
+clickhouse_replication_enabled: false
+clickhouse_zookeeper_nodes: []
+
+# Backup settings
+clickhouse_backup_enabled: true
+clickhouse_backup_path: /var/backups/clickhouse
+clickhouse_backup_retention_days: 7
+
+# Monitoring
+clickhouse_prometheus_endpoint_enabled: true
+clickhouse_prometheus_port: 9363
+clickhouse_prometheus_metrics_path: /metrics
+
+# Network settings
+clickhouse_listen_host:
+  - "::"
+  - "0.0.0.0"
+clickhouse_listen_backlog: 64
+clickhouse_keep_alive_timeout: 10
+
+# Additional settings
+clickhouse_timezone: "UTC"
+clickhouse_umask: "027"
+
+# Tables to create
+clickhouse_tables:
+  - name: events
+    database: "{{ clickhouse_database_name }}"
+    engine: "MergeTree()"
+    order_by: "(timestamp, event_id)"
+    partition_by: "toYYYYMM(timestamp)"

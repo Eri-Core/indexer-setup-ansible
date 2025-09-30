@@ -1,0 +1,49 @@
+---
+# Prometheus default configuration
+prometheus_version: "2.45.0"
+prometheus_port: 9090
+prometheus_user: prometheus
+prometheus_group: prometheus
+prometheus_data_dir: /var/lib/prometheus
+prometheus_config_dir: /etc/prometheus
+prometheus_log_dir: /var/log/prometheus
+
+# Scrape configuration defaults
+prometheus_scrape_interval: 15s
+prometheus_scrape_timeout: 10s
+prometheus_evaluation_interval: 15s
+
+# Retention settings
+prometheus_retention_time: 15d
+prometheus_retention_size: 10GB
+
+# Alert manager integration
+prometheus_alertmanager_enabled: false
+prometheus_alertmanager_url: "http://localhost:9093"
+
+# Default scrape targets
+prometheus_scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+  
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+  
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['localhost:9113']
+  
+  - job_name: 'clickhouse'
+    static_configs:
+      - targets: ['localhost:9363']
+
+# Node exporter settings
+node_exporter_version: "1.6.1"
+node_exporter_port: 9100
+
+# Additional exporters
+prometheus_exporters:
+  - nginx
+  - clickhouse
