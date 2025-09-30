@@ -1,15 +1,7 @@
-{% if nginx_upstream_servers is defined %}
-upstream backend {
-    least_conn;
-{% for server in nginx_upstream_servers %}
-    server {{ server }};
-{% endfor %}
-}
-{% endif %}
-
+# HTTP to HTTPS redirect for all subdomains
 server {
     listen 80;
-    server_name {{ indexer_domain }};
+    server_name {{ indexer_domain }} *.{{ indexer_domain }};
     
     location /.well-known/acme-challenge/ {
         root /var/www/html;
@@ -20,6 +12,7 @@ server {
     }
 }
 
+# Main domain - landing page
 server {
     listen 443 ssl http2;
     server_name {{ indexer_domain }};
@@ -30,7 +23,6 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
-    
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
     
@@ -39,12 +31,141 @@ server {
     add_header X-Frame-Options DENY;
     add_header X-XSS-Protection "1; mode=block";
     
-    # Root directory for static content
     root /var/www/html;
     index index.html index.htm;
     
     location / {
+        try_files $uri $uri/ =404;
+    }
+    
+    location /nginx_status {
+        stub_status on;
+        access_log off;
+        allow 127.0.0.1;
+        allow {{ ansible_default_ipv4.address | default('127.0.0.1') }};
+        deny all;
+    }
+}
+
+# Grafana subdomain
+server {
+    listen 443 ssl http2;
+    server_name grafana.{{ indexer_domain }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ indexer_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ indexer_domain }}/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    
+    location / {
+        proxy_pass http://127.0.0.1:{{ grafana_port }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Server $host;
+        
+        # WebSocket support for Grafana
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+
+# Prometheus subdomain
+server {
+    listen 443 ssl http2;
+    server_name prometheus.{{ indexer_domain }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ indexer_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ indexer_domain }}/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    
+    location / {
+        proxy_pass http://127.0.0.1:{{ prometheus_port }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+
+# ClickHouse subdomain
+server {
+    listen 443 ssl http2;
+    server_name clickhouse.{{ indexer_domain }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ indexer_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ indexer_domain }}/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    
+    location / {
+        proxy_pass http://127.0.0.1:{{ clickhouse_http_port }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+
 {% if nginx_upstream_servers is defined %}
+# Custom application subdomain (if upstream servers are configured)
+upstream backend {
+    least_conn;
+{% for server in nginx_upstream_servers %}
+    server {{ server }};
+{% endfor %}
+}
+
+server {
+    listen 443 ssl http2;
+    server_name app.{{ indexer_domain }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ indexer_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ indexer_domain }}/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    
+    location / {
         proxy_pass http://backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -54,35 +175,6 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
-{% else %}
-        # Serve static content when no upstream is configured
-        try_files $uri $uri/ =404;
-{% endif %}
-    }
-    
-    # Service-specific proxies
-    location /clickhouse/ {
-        proxy_pass http://127.0.0.1:{{ clickhouse_http_port }}/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /prometheus/ {
-        proxy_pass http://127.0.0.1:{{ prometheus_port }}/prometheus/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /grafana/ {
-        proxy_pass http://127.0.0.1:{{ grafana_port }}/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /nginx_status {
-        stub_status on;
-        access_log off;
-        allow 127.0.0.1;
-        deny all;
     }
 }
+{% endif %}

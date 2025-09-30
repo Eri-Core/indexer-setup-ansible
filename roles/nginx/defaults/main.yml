@@ -1,5 +1,5 @@
 ---
 # Default upstream servers for nginx load balancer
 # This should be overridden in inventory or group_vars
-nginx_upstream_servers:
-  - 127.0.0.1:8080
+# nginx_upstream_servers:
+#   - 127.0.0.1:8080

@@ -33,6 +33,7 @@
     mode: '0644'
   become: true
   notify: restart nginx
+  register: nginx_config
 
 - name: Configure firewall for HTTPS
   ufw:
@@ -88,6 +89,15 @@
     enabled: true
   become: true
   when: nginx_config_test.rc == 0
+
+- name: Force reload nginx configuration
+  systemd:
+    name: nginx
+    state: reloaded
+  become: true
+  when: 
+    - nginx_config_test.rc == 0
+    - nginx_config.changed | default(false)
 
 - name: Display nginx config test errors
   debug:

@@ -52,21 +52,29 @@
             <div class="service">
                 <h3>Grafana</h3>
                 <p>Monitoring dashboards and visualizations</p>
-                <a href="/grafana/">Access Grafana →</a>
+                <a href="#" onclick="openSubdomain('grafana')">Access Grafana →</a>
             </div>
             
             <div class="service">
                 <h3>Prometheus</h3>
                 <p>Metrics collection and monitoring</p>
-                <a href="/prometheus/">Access Prometheus →</a>
+                <a href="#" onclick="openSubdomain('prometheus')">Access Prometheus →</a>
             </div>
             
             <div class="service">
                 <h3>ClickHouse</h3>
                 <p>High-performance analytics database</p>
-                <a href="/clickhouse/play">Access ClickHouse Play →</a>
+                <a href="#" onclick="openSubdomain('clickhouse')">Access ClickHouse →</a>
             </div>
         </div>
+        
+        <script>
+            function openSubdomain(service) {
+                const currentDomain = window.location.hostname;
+                const url = `https://${service}.${currentDomain}`;
+                window.open(url, '_blank');
+            }
+        </script>
         
         <p style="text-align: center; margin-top: 40px; color: #999; font-size: 14px;">
             Nginx Status: <a href="/nginx_status" style="color: #999;">View</a>

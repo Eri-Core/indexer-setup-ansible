@@ -79,14 +79,26 @@
     timeout: 60
   become: yes
 
-- name: Set default user password
+- name: Create ericore user with password
   shell: |
-    echo "ALTER USER default IDENTIFIED BY '{{ clickhouse_password }}';" | clickhouse-client
+    echo "CREATE USER IF NOT EXISTS ericore IDENTIFIED BY '{{ clickhouse_password }}';" | clickhouse-client
+  become: yes
+  ignore_errors: yes
+
+- name: Grant privileges to ericore user
+  shell: |
+    echo "GRANT ALL ON *.* TO ericore WITH GRANT OPTION;" | clickhouse-client
   become: yes
   ignore_errors: yes
 
 - name: Create ericore database
   shell: |
-    echo "CREATE DATABASE IF NOT EXISTS {{ clickhouse_database_name }};" | clickhouse-client --password '{{ clickhouse_password }}'
+    echo "CREATE DATABASE IF NOT EXISTS {{ clickhouse_database_name }};" | clickhouse-client
+  become: yes
+  ignore_errors: yes
+
+- name: Grant ericore user access to ericore database
+  shell: |
+    echo "GRANT ALL ON {{ clickhouse_database_name }}.* TO ericore;" | clickhouse-client
   become: yes
   ignore_errors: yes
