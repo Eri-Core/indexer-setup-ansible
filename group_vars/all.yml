@@ -42,4 +42,6 @@ certbot_create_extra_args: "--test-cert"  # Remove this for production certifica
 certbot_certs:
   - domains:
       - "{{ indexer_domain }}"
-      - "*.{{ indexer_domain }}"  # Wildcard for subdomains
+      - "grafana.{{ indexer_domain }}"
+      - "prometheus.{{ indexer_domain }}"
+      - "clickhouse.{{ indexer_domain }}"
