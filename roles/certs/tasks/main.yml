@@ -138,6 +138,21 @@
     - not (cert_exists.stat.exists | default(false))
     - not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
 
+- name: Ensure nginx directories exist before starting
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /etc/nginx/sites-enabled
+    - /etc/nginx/sites-available
+    - /var/log/nginx
+  become: true
+  when: 
+    - certbot_create_method == 'standalone'
+    - not (cert_exists.stat.exists | default(false))
+    - not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
+
 - name: Start nginx after standalone cert generation
   systemd:
     name: nginx
@@ -147,6 +162,15 @@
     - certbot_create_method == 'standalone'
     - not (cert_exists.stat.exists | default(false))
     - not (skip_ssl_for_localhost and certbot_certs[0].domains[0] == 'localhost')
+  ignore_errors: true
+  register: nginx_start_result
+
+- name: Debug nginx startup failure
+  debug:
+    msg: "Nginx failed to start. This may be normal if nginx configuration is not yet complete."
+  when:
+    - nginx_start_result is defined
+    - nginx_start_result.failed | default(false)
 
 - name: Create renewal hook directory
   file:

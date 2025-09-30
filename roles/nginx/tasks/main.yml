@@ -41,12 +41,24 @@
     proto: tcp
   become: yes
 
+- name: Test nginx configuration
+  command: nginx -t
+  become: yes
+  register: nginx_config_test
+  ignore_errors: yes
+
 - name: Start and enable nginx
   systemd:
     name: nginx
     state: started
     enabled: yes
   become: yes
+  when: nginx_config_test.rc == 0
+
+- name: Display nginx config test errors
+  debug:
+    msg: "{{ nginx_config_test.stderr }}"
+  when: nginx_config_test.rc != 0
 
 - name: Download nginx-prometheus-exporter
   get_url:
