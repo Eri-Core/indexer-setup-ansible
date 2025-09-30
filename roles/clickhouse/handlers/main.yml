@@ -3,4 +3,4 @@
   systemd:
     name: clickhouse-server
     state: restarted
-  become: yes
+  become: true
