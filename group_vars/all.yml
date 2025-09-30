@@ -41,4 +41,3 @@ certbot_create_extra_args: "--test-cert"  # Remove this for production certifica
 certbot_certs:
   - domains:
       - "{{ indexer_domain }}"
-      - "www.{{ indexer_domain }}"

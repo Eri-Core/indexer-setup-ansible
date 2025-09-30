@@ -61,10 +61,8 @@
       
       [alt_names]
       DNS.1 = {{ inventory_hostname }}
-      DNS.2 = localhost
-      DNS.3 = {{ ansible_default_ipv4.address | default('127.0.0.1') }}
-      IP.1 = 127.0.0.1
-      IP.2 = {{ ansible_default_ipv4.address | default('127.0.0.1') }}
+      DNS.2 = {{ ansible_hostname }}
+      IP.1 = {{ ansible_default_ipv4.address | default('127.0.0.1') }}
     dest: /etc/ssl/ericore/{{ inventory_hostname }}.ext
     mode: '0644'
   become: true
