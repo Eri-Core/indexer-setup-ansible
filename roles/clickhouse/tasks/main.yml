@@ -71,6 +71,27 @@
     enabled: yes
   become: yes
 
+- name: Check ClickHouse service status
+  systemd:
+    name: clickhouse-server
+  register: clickhouse_status
+  become: yes
+
+- name: Debug ClickHouse service status
+  debug:
+    var: clickhouse_status
+
+- name: Check ClickHouse logs if service is not running
+  shell: journalctl -u clickhouse-server --no-pager -n 20
+  register: clickhouse_logs
+  become: yes
+  when: clickhouse_status.status.ActiveState != "active"
+
+- name: Display ClickHouse logs
+  debug:
+    var: clickhouse_logs.stdout_lines
+  when: clickhouse_status.status.ActiveState != "active"
+
 - name: Wait for ClickHouse to be ready
   wait_for:
     port: "{{ clickhouse_http_port }}"
@@ -85,39 +106,33 @@
   become: yes
   ignore_errors: yes
 
-- name: Create ericore user configuration file
-  copy:
-    content: |
-      <?xml version="1.0"?>
-      <clickhouse>
-          <users>
-              <ericore>
-                  <password>{{ clickhouse_password }}</password>
-                  <profile>default</profile>
-                  <quota>default</quota>
-                  <networks>
-                      <ip>::/0</ip>
-                  </networks>
-                  <access_management>1</access_management>
-              </ericore>
-          </users>
-      </clickhouse>
-    dest: /etc/clickhouse-server/users.d/ericore.xml
-    mode: '0644'
-    owner: clickhouse
-    group: clickhouse
-  become: yes
-  notify: restart clickhouse
-
-- name: Grant database permissions to ericore user after restart
+- name: Remove any problematic user configuration files
   shell: |
-    sleep 5
-    echo "GRANT ALL ON {{ clickhouse_database_name }}.* TO ericore;" | clickhouse-client --user=default
+    rm -f /etc/clickhouse-server/users.d/ericore.xml
   become: yes
   ignore_errors: yes
 
-- name: Ensure ericore user configuration is loaded
-  shell: |
-    echo "SYSTEM RELOAD USERS;" | clickhouse-client
+- name: Restart ClickHouse to clear any config issues
+  systemd:
+    name: clickhouse-server
+    state: restarted
   become: yes
   ignore_errors: yes
+
+- name: Wait a bit for ClickHouse to fully start
+  pause:
+    seconds: 10
+
+- name: Create ericore user using SQL (after ClickHouse is stable)
+  shell: |
+    echo "CREATE USER IF NOT EXISTS ericore IDENTIFIED BY '{{ clickhouse_password }}';" | clickhouse-client --user=default
+  become: yes
+  ignore_errors: yes
+  register: create_user_result
+
+- name: Grant database permissions to ericore user
+  shell: |
+    echo "GRANT CREATE, SELECT, INSERT, UPDATE, DELETE, DROP, ALTER ON {{ clickhouse_database_name }}.* TO ericore;" | clickhouse-client --user=default
+  become: yes
+  ignore_errors: yes
+  when: create_user_result.rc is defined and create_user_result.rc == 0
