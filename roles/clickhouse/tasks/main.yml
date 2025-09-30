@@ -88,20 +88,16 @@
 - name: Create ericore user configuration file
   copy:
     content: |
+      <?xml version="1.0"?>
       <clickhouse>
           <users>
               <ericore>
                   <password>{{ clickhouse_password }}</password>
                   <profile>default</profile>
                   <quota>default</quota>
-                  <databases>
-                      <{{ clickhouse_database_name }}>
-                          <query>SELECT, INSERT, ALTER, CREATE, DROP, TRUNCATE, OPTIMIZE, SHOW, KILL QUERY</query>
-                      </{{ clickhouse_database_name }}>
-                      <system>
-                          <query>SELECT</query>
-                      </system>
-                  </databases>
+                  <networks>
+                      <ip>::/0</ip>
+                  </networks>
                   <access_management>1</access_management>
               </ericore>
           </users>
@@ -112,6 +108,13 @@
     group: clickhouse
   become: yes
   notify: restart clickhouse
+
+- name: Grant database permissions to ericore user after restart
+  shell: |
+    sleep 5
+    echo "GRANT ALL ON {{ clickhouse_database_name }}.* TO ericore;" | clickhouse-client --user=default
+  become: yes
+  ignore_errors: yes
 
 - name: Ensure ericore user configuration is loaded
   shell: |

@@ -95,9 +95,8 @@
     name: nginx
     state: reloaded
   become: true
-  when: 
-    - nginx_config_test.rc == 0
-    - nginx_config.changed | default(false)
+  when: nginx_config_test.rc == 0
+  ignore_errors: true
 
 - name: Display nginx config test errors
   debug:
