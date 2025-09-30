@@ -14,6 +14,8 @@ base_packages:
 
 # Nginx Configuration
 nginx_port: 443
+nginx_upstream_servers:
+  - "127.0.0.1:8080"  # Default upstream server, adjust based on your application
 
 # ClickHouse Configuration
 clickhouse_http_port: 8123
