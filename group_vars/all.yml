@@ -20,6 +20,7 @@ nginx_upstream_servers:
 # ClickHouse Configuration
 clickhouse_http_port: 8123
 clickhouse_tcp_port: 9000
+clickhouse_interserver_port: 9009
 clickhouse_data_dir: "/var/lib/clickhouse"
 clickhouse_log_dir: "/var/log/clickhouse-server"
 clickhouse_database_name: "ericore"

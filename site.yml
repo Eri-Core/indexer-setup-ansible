@@ -1,5 +1,5 @@
 ---
-- name: Clean up existing configurations
+- name: Clean up and reinstall nginx with fresh configuration
   hosts: servers
   become: true
   gather_facts: false
@@ -10,149 +10,53 @@
         state: stopped
       ignore_errors: true
 
-    - name: Remove nginx package
+    - name: Remove nginx package completely
       apt:
         name: nginx
         state: absent
         purge: true
+        autoremove: true
       ignore_errors: true
 
-    - name: Remove nginx configuration directories
+    - name: Remove all nginx configuration and data
       file:
         path: "{{ item }}"
         state: absent
       loop:
         - /etc/nginx
         - /var/log/nginx
-        - /var/www/html
+        - /var/cache/nginx
+        - /usr/share/nginx
+        - /var/lib/nginx
       ignore_errors: true
-
-    - name: Remove existing SSL certificates
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/letsencrypt
-        - /etc/ssl/certs/localhost.crt
-        - /etc/ssl/private/localhost.key
-      ignore_errors: true
-
-    - name: Remove nginx systemd files
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/systemd/system/nginx.service
-        - /lib/systemd/system/nginx.service
-      ignore_errors: true
-
-    - name: Reload systemd daemon
-      systemd:
-        daemon_reload: true
 
     - name: Update package cache
       apt:
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Force reinstall nginx
+    - name: Install nginx fresh
       apt:
-        name: nginx
+        name: 
+          - nginx
+          - nginx-common
         state: present
-        force: true
         install_recommends: true
-        allow_downgrade: true
-        allow_change_held_packages: true
 
-    - name: Stop nginx service after installation
+    - name: Ensure nginx is stopped after fresh install
       systemd:
         name: nginx
         state: stopped
         enabled: false
       ignore_errors: true
 
-    - name: Create nginx configuration directory
-      file:
-        path: /etc/nginx
-        state: directory
-        mode: '0755'
-
-    - name: Create basic nginx.conf
+    - name: Backup original nginx configuration
       copy:
-        content: |
-          user www-data;
-          worker_processes auto;
-          pid /run/nginx.pid;
-          include /etc/nginx/modules-enabled/*.conf;
-
-          events {
-              worker_connections 768;
-          }
-
-          http {
-              sendfile on;
-              tcp_nopush on;
-              types_hash_max_size 2048;
-              include /etc/nginx/mime.types;
-              default_type application/octet-stream;
-              access_log /var/log/nginx/access.log;
-              error_log /var/log/nginx/error.log;
-              gzip on;
-              include /etc/nginx/conf.d/*.conf;
-              include /etc/nginx/sites-enabled/*;
-          }
-        dest: /etc/nginx/nginx.conf
-        mode: '0644'
-
-    - name: Create nginx directories
-      file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-      loop:
-        - /etc/nginx/conf.d
-        - /etc/nginx/sites-available
-        - /etc/nginx/sites-enabled
-        - /var/log/nginx
-        - /etc/nginx/modules-enabled
-
-    - name: Copy nginx mime.types from package files
-      copy:
-        src: /usr/share/nginx/mime.types
-        dest: /etc/nginx/mime.types
+        src: /etc/nginx/nginx.conf
+        dest: /etc/nginx/nginx.conf.original
         mode: '0644'
         remote_src: true
       ignore_errors: true
-      register: nginx_copy_mime
-
-    - name: Create mime.types if not found
-      copy:
-        content: |
-          types {
-              text/html                             html htm shtml;
-              text/css                              css;
-              text/xml                              xml;
-              image/gif                             gif;
-              image/jpeg                            jpeg jpg;
-              application/javascript                js;
-              application/atom+xml                  atom;
-              application/rss+xml                   rss;
-              text/plain                            txt;
-              image/png                             png;
-              image/svg+xml                         svg svgz;
-              image/webp                            webp;
-              application/json                      json;
-              application/pdf                       pdf;
-              application/zip                       zip;
-              application/octet-stream              bin exe dll;
-              application/octet-stream              deb;
-              application/octet-stream              dmg;
-              application/octet-stream              iso img;
-              application/octet-stream              msi msp msm;
-          }
-        dest: /etc/nginx/mime.types
-        mode: '0644'
-      when: nginx_copy_mime.failed | default(false)
 
 - name: Display all variables at start
   hosts: servers

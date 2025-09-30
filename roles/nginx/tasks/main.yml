@@ -1,9 +1,16 @@
 ---
+- name: Check if nginx is already installed
+  command: which nginx
+  register: nginx_installed
+  ignore_errors: true
+  changed_when: false
+
 - name: Install nginx
   apt:
     name: nginx
     state: present
   become: true
+  when: nginx_installed.rc != 0
 
 - name: Remove default nginx site
   file:
