@@ -24,17 +24,40 @@
         rm -f /etc/letsencrypt/renewal/*.conf
       ignore_errors: true
 
-    - name: Completely remove and reinstall ClickHouse
+    - name: Stop ClickHouse service
+      systemd:
+        name: clickhouse-server
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove ClickHouse packages
+      apt:
+        name:
+          - clickhouse-server
+          - clickhouse-client
+        state: absent
+        purge: true
+        autoremove: true
+      ignore_errors: true
+
+    - name: Remove ClickHouse directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/clickhouse-server
+        - /var/lib/clickhouse
+        - /var/log/clickhouse-server
+      ignore_errors: true
+
+    - name: Force remove any remaining ClickHouse configs and reload systemd
       shell: |
-        systemctl stop clickhouse-server || true
-        systemctl disable clickhouse-server || true
-        pkill -f clickhouse-server || true
-        sleep 3
-        apt-get remove --purge -y clickhouse-server clickhouse-client || true
-        rm -rf /etc/clickhouse-server
-        rm -rf /var/lib/clickhouse
-        rm -rf /var/log/clickhouse-server
-        echo "ClickHouse completely removed"
+        systemctl daemon-reload
+        find /etc -name "*clickhouse*" -type f -delete 2>/dev/null || true
+        find /var -name "*clickhouse*" -type d -exec rm -rf {} + 2>/dev/null || true
+        systemctl reset-failed clickhouse-server.service 2>/dev/null || true
+        echo "ClickHouse completely purged"
       ignore_errors: true
 
 
