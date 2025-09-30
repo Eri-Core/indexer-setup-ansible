@@ -165,14 +165,15 @@
   become: true
   when: certbot_auto_renew
 
-- name: Test certificate renewal
-  command: certbot renew --dry-run --webroot -w /var/www/html
+- name: Test certificate renewal (for current domain only)
+  command: certbot renew --dry-run --cert-name {{ indexer_domain }}
   become: true
   register: renewal_test
   changed_when: false
   ignore_errors: true
+  when: cert_exists.stat.exists | default(false)
 
 - name: Display renewal test result
   debug:
-    msg: "Certificate renewal test completed. Check if webroot path is configured correctly."
-  when: renewal_test.failed | default(false)
+    msg: "Certificate renewal test completed. This may fail for other domains not currently being configured."
+  when: renewal_test is defined

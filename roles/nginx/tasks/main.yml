@@ -57,6 +57,24 @@
     comment: 'Internal SSL for backend communication'
   become: true
 
+- name: Ensure web root directory exists
+  file:
+    path: /var/www/html
+    state: directory
+    mode: '0755'
+    owner: www-data
+    group: www-data
+  become: true
+
+- name: Copy default index page
+  copy:
+    src: index.html
+    dest: /var/www/html/index.html
+    mode: '0644'
+    owner: www-data
+    group: www-data
+  become: true
+
 - name: Test nginx configuration
   command: nginx -t
   become: true

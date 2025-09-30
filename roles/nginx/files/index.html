@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ericore Services</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .services {
+            margin-top: 30px;
+        }
+        .service {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .service h3 {
+            margin: 0 0 5px 0;
+            color: #007bff;
+        }
+        .service a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .service a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ericore Services</h1>
+        <p style="text-align: center; color: #666;">Welcome to the Ericore infrastructure services</p>
+        
+        <div class="services">
+            <div class="service">
+                <h3>Grafana</h3>
+                <p>Monitoring dashboards and visualizations</p>
+                <a href="/grafana/">Access Grafana →</a>
+            </div>
+            
+            <div class="service">
+                <h3>Prometheus</h3>
+                <p>Metrics collection and monitoring</p>
+                <a href="/prometheus/">Access Prometheus →</a>
+            </div>
+            
+            <div class="service">
+                <h3>ClickHouse</h3>
+                <p>High-performance analytics database</p>
+                <a href="/clickhouse/play">Access ClickHouse Play →</a>
+            </div>
+        </div>
+        
+        <p style="text-align: center; margin-top: 40px; color: #999; font-size: 14px;">
+            Nginx Status: <a href="/nginx_status" style="color: #999;">View</a>
+        </p>
+    </div>
+</body>
+</html>
