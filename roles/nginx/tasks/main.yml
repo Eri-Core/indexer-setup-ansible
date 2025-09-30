@@ -3,13 +3,13 @@
   apt:
     name: nginx
     state: present
-  become: yes
+  become: true
 
 - name: Remove default nginx site
   file:
     path: /etc/nginx/sites-enabled/default
     state: absent
-  become: yes
+  become: true
   notify: restart nginx
 
 - name: Create nginx configuration directory
@@ -17,14 +17,14 @@
     path: /etc/nginx/conf.d
     state: directory
     mode: '0755'
-  become: yes
+  become: true
 
 - name: Configure nginx as load balancer
   template:
     src: load_balancer.conf.j2
     dest: "/etc/nginx/conf.d/load_balancer.conf"
     mode: '0644'
-  become: yes
+  become: true
   notify: restart nginx
 
 - name: Configure firewall for HTTPS
@@ -32,27 +32,27 @@
     rule: allow
     port: '443'
     proto: tcp
-  become: yes
+  become: true
 
 - name: Configure firewall for HTTP (for certbot)
   ufw:
     rule: allow
     port: '80'
     proto: tcp
-  become: yes
+  become: true
 
 - name: Test nginx configuration
   command: nginx -t
-  become: yes
+  become: true
   register: nginx_config_test
-  ignore_errors: yes
+  ignore_errors: true
 
 - name: Start and enable nginx
   systemd:
     name: nginx
     state: started
-    enabled: yes
-  become: yes
+    enabled: true
+  become: true
   when: nginx_config_test.rc == 0
 
 - name: Display nginx config test errors
@@ -65,7 +65,7 @@
     url: "https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/v1.1.0/nginx-prometheus-exporter_1.1.0_linux_amd64.tar.gz"
     dest: "/tmp/nginx-prometheus-exporter.tar.gz"
     mode: '0644'
-  become: yes
+  become: true
 
 - name: Extract nginx-prometheus-exporter
   unarchive:
@@ -75,7 +75,7 @@
     owner: root
     group: root
     mode: '0755'
-  become: yes
+  become: true
 
 - name: Create nginx-exporter systemd service
   copy:
@@ -95,12 +95,12 @@
       WantedBy=multi-user.target
     dest: /etc/systemd/system/nginx-prometheus-exporter.service
     mode: '0644'
-  become: yes
+  become: true
 
 - name: Start and enable nginx-prometheus-exporter
   systemd:
     name: nginx-prometheus-exporter
     state: started
-    enabled: yes
+    enabled: true
     daemon_reload: yes
-  become: yes
+  become: true
