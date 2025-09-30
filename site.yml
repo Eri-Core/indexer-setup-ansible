@@ -24,6 +24,16 @@
         rm -f /etc/letsencrypt/renewal/*.conf
       ignore_errors: true
 
+    - name: Stop ClickHouse and remove ALL custom configurations
+      shell: |
+        systemctl stop clickhouse-server || true
+        pkill -f clickhouse-server || true
+        sleep 3
+        rm -f /etc/clickhouse-server/config.d/*.xml
+        rm -f /etc/clickhouse-server/users.d/*.xml
+        echo "ClickHouse stopped and configs cleaned"
+      ignore_errors: true
+
 
     - name: Ensure nginx is installed
       apt:

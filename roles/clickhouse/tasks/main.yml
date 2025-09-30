@@ -108,36 +108,12 @@
   become: yes
   ignore_errors: yes
 
-- name: Remove any problematic configuration files
+- name: Verify ClickHouse configs are clean (debug)
   shell: |
-    rm -f /etc/clickhouse-server/users.d/ericore.xml
-    rm -f /etc/clickhouse-server/config.d/custom.xml
-    rm -f /etc/clickhouse-server/config.d/*.xml
-  become: yes
-  ignore_errors: yes
-
-- name: Stop ClickHouse completely before restart
-  systemd:
-    name: clickhouse-server
-    state: stopped
-  become: yes
-  ignore_errors: yes
-
-- name: Kill any remaining ClickHouse processes
-  shell: |
-    pkill -f clickhouse-server || true
-    sleep 2
-  become: yes
-  ignore_errors: yes
-
-- name: List remaining config files (debug)
-  shell: |
-    echo "=== Main config ==="
-    ls -la /etc/clickhouse-server/config.xml || echo "Main config not found"
     echo "=== Config.d directory ==="
-    ls -la /etc/clickhouse-server/config.d/ || echo "Config.d directory not found"
+    ls -la /etc/clickhouse-server/config.d/ || echo "Config.d directory empty/not found"
     echo "=== Users.d directory ==="
-    ls -la /etc/clickhouse-server/users.d/ || echo "Users.d directory not found"
+    ls -la /etc/clickhouse-server/users.d/ || echo "Users.d directory empty/not found"
   become: yes
   register: config_files_debug
 
@@ -145,10 +121,11 @@
   debug:
     var: config_files_debug.stdout_lines
 
-- name: Start ClickHouse with clean configuration
+- name: Start ClickHouse with default configuration only
   systemd:
     name: clickhouse-server
     state: started
+    enabled: true
   become: yes
 
 - name: Wait a bit for ClickHouse to fully start
