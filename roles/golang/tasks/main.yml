@@ -1,0 +1,87 @@
+---
+- name: Check if Go is already installed
+  command: go version
+  register: go_installed
+  failed_when: false
+  changed_when: false
+
+- name: Display current Go version if installed
+  debug:
+    msg: "Go is already installed: {{ go_installed.stdout }}"
+  when: go_installed.rc == 0
+
+- name: Remove existing Go installation
+  file:
+    path: "{{ go_install_dir }}/go"
+    state: absent
+  when: go_installed.rc != 0 or go_version not in go_installed.stdout
+
+- name: Download Go binary
+  get_url:
+    url: "{{ go_archive_url }}"
+    dest: "/tmp/go{{ go_version }}.linux-amd64.tar.gz"
+    mode: '0644'
+  when: go_installed.rc != 0 or go_version not in go_installed.stdout
+
+- name: Extract Go binary
+  unarchive:
+    src: "/tmp/go{{ go_version }}.linux-amd64.tar.gz"
+    dest: "{{ go_install_dir }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0755'
+  when: go_installed.rc != 0 or go_version not in go_installed.stdout
+
+- name: Add Go to PATH in /etc/environment
+  lineinfile:
+    path: /etc/environment
+    line: 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:{{ go_bin_path }}"'
+    regexp: '^PATH='
+    state: present
+    backup: true
+
+- name: Create Go environment script
+  copy:
+    content: |
+      export GOROOT={{ go_install_dir }}/go
+      export GOPATH={{ go_path }}
+      export PATH=$PATH:{{ go_bin_path }}:$GOPATH/bin
+    dest: /etc/profile.d/golang.sh
+    mode: '0755'
+
+- name: Create GOPATH directory
+  file:
+    path: "{{ go_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create GOPATH subdirectories
+  file:
+    path: "{{ go_path }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - src
+    - bin
+    - pkg
+
+- name: Clean up downloaded archive
+  file:
+    path: "/tmp/go{{ go_version }}.linux-amd64.tar.gz"
+    state: absent
+
+- name: Verify Go installation
+  shell: |
+    source /etc/profile.d/golang.sh
+    go version
+  register: go_version_check
+  changed_when: false
+
+- name: Display Go installation result
+  debug:
+    msg: "Go successfully installed: {{ go_version_check.stdout }}"

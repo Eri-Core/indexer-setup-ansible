@@ -140,3 +140,47 @@
   become: true
   roles:
     - redis
+
+- name: Install Go on servers
+  hosts: golang_servers
+  become: true
+  roles:
+    - golang
+
+- name: Final verification and status check
+  hosts: servers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Verify all services are running
+      systemd:
+        name: "{{ item }}"
+        state: started
+      register: service_status
+      failed_when: false
+      loop:
+        - nginx
+        - clickhouse-server
+        - prometheus
+        - grafana-server
+        - redis-server
+
+    - name: Check Go installation
+      shell: |
+        source /etc/profile.d/golang.sh
+        go version
+      register: go_check
+      failed_when: false
+      changed_when: false
+
+    - name: Display final status
+      debug:
+        msg:
+          - "=== DEPLOYMENT COMPLETE ==="
+          - "Nginx: {{ 'Running' if service_status.results[0].state is defined and service_status.results[0].state == 'started' else 'Not Running' }}"
+          - "ClickHouse: {{ 'Running' if service_status.results[1].state is defined and service_status.results[1].state == 'started' else 'Not Running' }}"
+          - "Prometheus: {{ 'Running' if service_status.results[2].state is defined and service_status.results[2].state == 'started' else 'Not Running' }}"
+          - "Grafana: {{ 'Running' if service_status.results[3].state is defined and service_status.results[3].state == 'started' else 'Not Running' }}"
+          - "Redis: {{ 'Running' if service_status.results[4].state is defined and service_status.results[4].state == 'started' else 'Not Running' }}"
+          - "Go: {{ go_check.stdout if go_check.rc == 0 else 'Not Installed' }}"
+          - "=========================="

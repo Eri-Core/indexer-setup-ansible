@@ -95,6 +95,16 @@
   become: yes
   notify: restart grafana
 
+- name: Create Redis dashboard
+  template:
+    src: redis-dashboard.json.j2
+    dest: /etc/grafana/provisioning/dashboards/redis.json
+    owner: root
+    group: grafana
+    mode: '0640'
+  become: yes
+  notify: restart grafana
+
 - name: Configure firewall for Grafana
   ufw:
     rule: allow

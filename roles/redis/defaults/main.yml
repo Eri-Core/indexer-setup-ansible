@@ -12,3 +12,9 @@ redis_tcp_keepalive: 60
 redis_loglevel: "notice"
 redis_logfile: "/var/log/redis/redis-server.log"
 redis_dir: "/var/lib/redis"
+
+# Redis Exporter for Prometheus
+redis_exporter_version: "1.55.0"
+redis_exporter_port: 9121
+redis_exporter_user: "redis_exporter"
+redis_exporter_group: "redis_exporter"

@@ -39,6 +39,7 @@ grafana_admin_password: "changeme"
 redis_port: 6379
 redis_bind_address: "0.0.0.0"
 redis_requirepass: ""  # Empty string disables authentication
+redis_exporter_port: 9121
 
 # SSL Certificate Configuration
 certbot_admin_email: "{{ admin_email }}"

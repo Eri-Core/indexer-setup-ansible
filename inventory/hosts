@@ -17,3 +17,6 @@ localhost
 
 [redis_servers]
 localhost
+
+[golang_servers]
+localhost
