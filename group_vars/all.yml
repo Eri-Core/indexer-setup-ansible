@@ -11,6 +11,9 @@ base_packages:
   - apt-transport-https
   - ca-certificates
   - gnupg
+  - tar
+  - gzip
+  - unzip
 
 # Nginx Configuration
 nginx_port: 443
