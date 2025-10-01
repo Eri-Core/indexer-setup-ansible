@@ -1,0 +1,49 @@
+---
+- name: Install Redis server
+  apt:
+    name: redis-server
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create Redis log directory
+  file:
+    path: /var/log/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: '0755'
+
+- name: Create Redis configuration file
+  template:
+    src: redis.conf.j2
+    dest: /etc/redis/redis.conf
+    owner: redis
+    group: redis
+    mode: '0640'
+    backup: true
+  notify: restart redis
+
+- name: Ensure Redis is started and enabled
+  systemd:
+    name: redis-server
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Wait for Redis to start
+  wait_for:
+    port: "{{ redis_port }}"
+    host: 127.0.0.1
+    delay: 2
+    timeout: 30
+
+- name: Test Redis connectivity
+  command: redis-cli -p {{ redis_port }} ping
+  register: redis_ping
+  changed_when: false
+  failed_when: redis_ping.stdout != "PONG"
+
+- name: Display Redis status
+  debug:
+    msg: "Redis is running on port {{ redis_port }}"

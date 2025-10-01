@@ -1,0 +1,14 @@
+---
+redis_port: 6379
+redis_bind_address: "0.0.0.0"
+redis_maxmemory: "256mb"
+redis_maxmemory_policy: "allkeys-lru"
+redis_appendonly: "yes"
+redis_appendfsync: "everysec"
+redis_requirepass: ""
+redis_databases: 16
+redis_timeout: 300
+redis_tcp_keepalive: 60
+redis_loglevel: "notice"
+redis_logfile: "/var/log/redis/redis-server.log"
+redis_dir: "/var/lib/redis"

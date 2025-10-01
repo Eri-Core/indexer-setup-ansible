@@ -1,0 +1,90 @@
+# Redis configuration file
+
+# Network and connection settings
+bind {{ redis_bind_address }}
+protected-mode yes
+port {{ redis_port }}
+tcp-backlog 511
+timeout {{ redis_timeout }}
+tcp-keepalive {{ redis_tcp_keepalive }}
+
+# General settings
+daemonize yes
+supervised systemd
+pidfile /var/run/redis/redis-server.pid
+loglevel {{ redis_loglevel }}
+logfile {{ redis_logfile }}
+databases {{ redis_databases }}
+
+# Persistence settings
+dir {{ redis_dir }}
+appendonly {{ redis_appendonly }}
+appendfilename "appendonly.aof"
+appendfsync {{ redis_appendfsync }}
+no-appendfsync-on-rewrite no
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+
+# Memory management
+maxmemory {{ redis_maxmemory }}
+maxmemory-policy {{ redis_maxmemory_policy }}
+
+# Security
+{% if redis_requirepass %}
+requirepass {{ redis_requirepass }}
+{% endif %}
+
+# Disable dangerous commands
+rename-command FLUSHDB ""
+rename-command FLUSHALL ""
+rename-command KEYS ""
+rename-command CONFIG ""
+
+# Performance tuning
+rdbcompression yes
+rdbchecksum yes
+dbfilename dump.rdb
+save 900 1
+save 300 10
+save 60 10000
+
+# Replication
+# slaveof <masterip> <masterport>
+# masterauth <master-password>
+
+# Limits
+maxclients 10000
+
+# Advanced settings
+hash-max-ziplist-entries 512
+hash-max-ziplist-value 64
+list-max-ziplist-size -2
+list-compress-depth 0
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+activerehashing yes
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit slave 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+hz 10
+aof-rewrite-incremental-fsync yes
+
+# Modules
+# loadmodule /path/to/module.so
+
+# Event notification
+notify-keyspace-events ""
+
+# Advanced config
+stop-writes-on-bgsave-error yes
+slave-serve-stale-data yes
+slave-read-only yes
+repl-diskless-sync no
+repl-diskless-sync-delay 5
+repl-disable-tcp-nodelay no
+slave-priority 100
+lazyfree-lazy-eviction no
+lazyfree-lazy-expire no
+lazyfree-lazy-server-del no
+slave-lazy-flush no
